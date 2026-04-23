@@ -1,8 +1,9 @@
-using System.Collections.Generic;
 using Jotunn.Entities;
 using Jotunn.Managers;
-using UnityEngine;
 using System;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
 
 namespace GambleMod
 {
@@ -10,12 +11,20 @@ namespace GambleMod
     {
         public override string Name => "Gamble";
 
-        public override string Help => "Gamble (amount)    65/35 odds (can be changed in config)"; // we want 65 35 odds in player favor
+        public override string Help => "Gamble (amount)    60 % win chance / 40 loss chance / 1% 10x jackpot / 1% 0x Critical Failure (can be changed in config)"; // we want 65 35 odds in player favor
 
         public override void Run(string[] args)
         {
 
             int wager;
+
+            int odds = 40;
+
+            var rand = new System.Random();
+
+            int jackpotNum = 99;
+
+            int lossNum = 0;
 
             if (args.Length == 0)
             {
@@ -57,29 +66,37 @@ namespace GambleMod
                         // > 35 succeed -> add wager to inventory
                         // < 50 fail - > take 
 
-                        var rand = new System.Random();
-
                         int result = rand.Next(0, 100); //inc,excl
 
-                        if (result >= 35)
+                        Inventory inv = player.GetInventory();
+
+                        var coinItem = inv.GetItem("$item_coins");
+                        var coinPrefab = coinItem?.m_dropPrefab;
+
+                        if (result == lossNum) // 0
                         {
-                            Inventory inv = player.GetInventory();
+                            inv.RemoveItem("$item_coins", wager);
+                            Console.instance.Print("Rolled a - " + result + "\nCritical Failure, lost " + wager + " coins");
 
-                            var coinItem = inv.GetItem("$item_coins");
-                            var coinPrefab = coinItem?.m_dropPrefab;
-
-                            Console.instance.Print($"shared name: {coinItem?.m_shared?.m_name}");
-                            Console.instance.Print($"prefab name: {coinItem?.m_dropPrefab?.name}");
+                        }
+                        else if(result == jackpotNum) // 99
+                        {
+                            int winAmount = wager * 10;
+                            inv.AddItem(coinPrefab, winAmount);
+                            Console.instance.Print("WINNER 10x JACKPOT: WON " + winAmount + " Coins!\n rolled a - " + result);
+                        }
+                        else if (result >= odds) // # >= 40
+                        {
 
                             //success
                             inv.AddItem(coinPrefab, wager);
-                            Console.instance.Print("Win");
+                            Console.instance.Print("Rolled a - " + result + "\nWon " + wager + " coins");
                         }
-                        else
+                        else if(result < odds) // # < 35
                         {
                             //fail
-                            player.GetInventory().RemoveItem("$item_coins", wager);
-                            Console.instance.Print("Loss");
+                            inv.RemoveItem("$item_coins", wager);
+                            Console.instance.Print("Rolled a - " + result + "\nLost " + wager + " coins");
 
                         }
 
