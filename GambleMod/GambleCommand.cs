@@ -10,7 +10,7 @@ namespace GambleMod
     {
         public override string Name => "Gamble";
 
-        public override string Help => "Gamble (amount)    50/50 odds"; // we want 65 35 odds in player favor
+        public override string Help => "Gamble (amount)    65/35 odds (can be changed in config)"; // we want 65 35 odds in player favor
 
         public override void Run(string[] args)
         {
@@ -22,7 +22,7 @@ namespace GambleMod
                 return;
             }
 
-            if(args.Length > 1)
+            if (args.Length > 1)
             {
                 // If there are more than 1 arguments, say error only 1 argument is allowed
                 Console.instance.Print("Error: Only 1 argument is allowed");
@@ -32,14 +32,14 @@ namespace GambleMod
             if (args.Length == 1)
             {
                 bool parseWorked = int.TryParse(args[0], out wager);
-                
-                if(!parseWorked)
+
+                if (!parseWorked)
                 {
                     Console.instance.Print("Error: Non-integer input");
                     return;
                 }
 
-                // get first arg as an integer.
+                
                 if (wager <= 0)
                 {
                     Console.instance.Print("Error: Cannot Gamble Negative or Zero");
@@ -49,7 +49,6 @@ namespace GambleMod
                 {
                     //instantiate player
                     var player = Player.m_localPlayer;
-                    player.GetInventory();
 
                     // check for coins in inventory
                     if (player.GetInventory().CountItems("$item_coins") >= wager)
@@ -62,13 +61,19 @@ namespace GambleMod
 
                         int result = rand.Next(0, 100); //inc,excl
 
-                        if(result >= 35)
+                        if (result >= 35)
                         {
-                            //success
-                            player.GetInventory().AddItem("$item_coins", wager);
-                            Console.instance.Print("Win");
+                            Inventory inv = player.GetInventory();
 
-                            player.GetInventory().AddItem(item,);
+                            var coinItem = inv.GetItem("$item_coins");
+                            var coinPrefab = coinItem?.m_dropPrefab;
+
+                            Console.instance.Print($"shared name: {coinItem?.m_shared?.m_name}");
+                            Console.instance.Print($"prefab name: {coinItem?.m_dropPrefab?.name}");
+
+                            //success
+                            inv.AddItem(coinPrefab, wager);
+                            Console.instance.Print("Win");
                         }
                         else
                         {
@@ -77,14 +82,14 @@ namespace GambleMod
                             Console.instance.Print("Loss");
 
                         }
-                        
+
+                    }
+                    else
+                    {
+                        Console.instance.Print("Error: Not enough coins aka poor");
                     }
                 }
             }
-
-        public override List<string> CommandOptionList()
-        {
-            return ZNetScene.instance?.GetPrefabNames();
         }
     }
 }
