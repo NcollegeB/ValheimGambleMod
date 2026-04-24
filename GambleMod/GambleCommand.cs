@@ -3,6 +3,7 @@ using Jotunn.Managers;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace GambleMod
@@ -25,6 +26,15 @@ namespace GambleMod
             int jackpotNum = 99;
 
             int lossNum = 0;
+
+            List<string> randomMobArray = new List<string>() { "Skeleton", "Wraith", "Volture", "Unbjorn", "Ulv", "Troll", "FallenValkyrie", "Chicken", "Abomination"};
+
+
+            GameObject coinPrefab1 = PrefabManager.Instance.GetPrefab("Coins");
+            var coinDrop = coinPrefab1.GetComponent<ItemDrop>();
+
+            coinDrop.m_itemData.m_shared.m_maxStackSize = 9999;
+            
 
             if (args.Length == 0)
             {
@@ -66,18 +76,28 @@ namespace GambleMod
                         // > 35 succeed -> add wager to inventory
                         // < 50 fail - > take 
 
-                        int result = rand.Next(0, 100); //inc,excl
+                        int result = rand.Next(0, 0); //inc,excl
 
                         Inventory inv = player.GetInventory();
 
                         var coinItem = inv.GetItem("$item_coins");
                         var coinPrefab = coinItem?.m_dropPrefab;
+                        
+
+                        // Console.instance.Print(coinItem.m_stack.ToString());
 
                         if (result == lossNum) // 0
                         {
                             inv.RemoveItem("$item_coins", wager);
                             Console.instance.Print("Rolled a - " + result + "\nCritical Failure, lost " + wager + " coins");
 
+
+                            //spawn random mob
+                            string randomPrefab = randomMobArray[rand.Next(0, randomMobArray.Count())];
+                            GameObject prefab = PrefabManager.Instance.GetPrefab(randomPrefab);
+                            UnityEngine.Object.Instantiate<GameObject>(prefab, Player.m_localPlayer.transform.position + Player.m_localPlayer.transform.forward * 2f + Vector3.up, Quaternion.identity);
+
+                            Console.instance.Print("SPAWNING A " + randomPrefab);
                         }
                         else if(result == jackpotNum) // 99
                         {
@@ -88,6 +108,7 @@ namespace GambleMod
                         else if (result >= odds) // # >= 40
                         {
 
+                            if(wager > coinItem.m_stack)
                             //success
                             inv.AddItem(coinPrefab, wager);
                             Console.instance.Print("Rolled a - " + result + "\nWon " + wager + " coins");
