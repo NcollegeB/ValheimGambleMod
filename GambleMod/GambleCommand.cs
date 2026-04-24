@@ -14,6 +14,10 @@ namespace GambleMod
 
         public override string Help => "Gamble (amount)    60 % win chance / 40 loss chance / 1% 10x jackpot / 1% 0x Critical Failure (can be changed in config)"; // we want 65 35 odds in player favor
 
+        float nextGambleTime = -1f;
+
+        const float commandCooldown = 5f;
+
         public override void Run(string[] args)
         {
 
@@ -27,13 +31,20 @@ namespace GambleMod
 
             int lossNum = 0;
 
+            
+
+            // random mob stuff
             List<string> randomMobArray = new List<string>() { "Skeleton", "Wraith", "Volture", "Unbjorn", "Ulv", "Troll", "FallenValkyrie", "Chicken", "Abomination"};
 
-
+            // coin stuff
             GameObject coinPrefab1 = PrefabManager.Instance.GetPrefab("Coins");
             var coinDrop = coinPrefab1.GetComponent<ItemDrop>();
 
-            coinDrop.m_itemData.m_shared.m_maxStackSize = 9999;
+            if(Time.time < nextGambleTime)
+            {
+                Console.instance.Print("Error: 5 Second Cooldown");
+                return;
+            }
             
 
             if (args.Length == 0)
@@ -66,6 +77,7 @@ namespace GambleMod
                 }
                 else
                 {
+                    
                     //instantiate player
                     var player = Player.m_localPlayer;
 
@@ -76,15 +88,13 @@ namespace GambleMod
                         // > 35 succeed -> add wager to inventory
                         // < 50 fail - > take 
 
-                        int result = rand.Next(0, 0); //inc,excl
+                        int result = rand.Next(0, 100); //inc,excl
 
                         Inventory inv = player.GetInventory();
 
                         var coinItem = inv.GetItem("$item_coins");
                         var coinPrefab = coinItem?.m_dropPrefab;
-                        
 
-                        // Console.instance.Print(coinItem.m_stack.ToString());
 
                         if (result == lossNum) // 0
                         {
@@ -107,8 +117,6 @@ namespace GambleMod
                         }
                         else if (result >= odds) // # >= 40
                         {
-
-                            if(wager > coinItem.m_stack)
                             //success
                             inv.AddItem(coinPrefab, wager);
                             Console.instance.Print("Rolled a - " + result + "\nWon " + wager + " coins");
@@ -121,6 +129,7 @@ namespace GambleMod
 
                         }
 
+                        nextGambleTime = Time.time + 5f;
                     }
                     else
                     {
